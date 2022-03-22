@@ -114,6 +114,7 @@ jobs:
       - name: Install appimage (Linux)
         if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'linux'
         run: |
-          curl -JOL https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /bin/appimagetool
-          chmod a+x /bin/appimagetool
+          curl -JOL https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod a+x appimagetool-x86_64.AppImage
+          mv appimagetool-x86_64.AppImage /bin/appimagetool
 
