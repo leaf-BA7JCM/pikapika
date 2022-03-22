@@ -59,6 +59,7 @@ jobs:
             host: ubuntu-latest
           - target: android-x86_64
             host: ubuntu-latest
+
     runs-on: ${{ matrix.config.host }}
 
     env:
@@ -79,17 +80,17 @@ jobs:
           cd ci
           go run ./cmd/check_asset
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD"
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD"
         uses: subosito/flutter-action@v2.3.0
         with:
           channel: ${{ env.flutter_channel }}
           flutter-version: ${{ env.flutter_version }}
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "android-arm32" | ${{ env.TARGET }} == "android-arm64" | ${{ env.TARGET }} == "android-x86_64" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "android-arm32" | ${{ matrix.config.target }} == "android-arm64" | ${{ matrix.config.target }} == "android-x86_64" )
         name: Setup java
         uses: actions/setup-java@v3
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "android-arm32" | ${{ env.TARGET }} == "android-arm64" | ${{ env.TARGET }} == "android-x86_64" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "android-arm32" | ${{ matrix.config.target }} == "android-arm64" | ${{ matrix.config.target }} == "android-x86_64" )
         name: Setup android tools
         uses: maxim-lobanov/setup-android-tools@v1
         with:
@@ -99,27 +100,27 @@ jobs:
             build-tools;30.0.2
             ndk;22.1.7171670
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "windows" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "windows" )
         name: Setup msys2
         uses: msys2/setup-msys2@v2
         with:
           install: gcc make
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "windows" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "windows" )
         name: Setup msys2
         uses: msys2/setup-msys2@v2
         with:
           install: gcc make
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "windows" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "windows" )
         name: Install zip
         uses: montudor/action-zip@v1
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "linux" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "linux" )
         name: Install appimage
         uses: AppImageCrafters/build-appimage@master
 
-      - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "linux" | ${{ env.TARGET }} == "windows" ${{ env.TARGET }} == "macos" )
+      - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "linux" | ${{ matrix.config.target }} == "windows" ${{ matrix.config.target }} == "macos" )
         name: Install appimage
         run: |
           go install github.com/go-flutter-desktop/hover@latest
