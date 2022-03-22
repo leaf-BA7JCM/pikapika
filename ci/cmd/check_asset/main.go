@@ -64,13 +64,13 @@ func main() {
 		nil,
 	)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 	getReleaseRequest.Header.Set("User-Agent", ua)
 	getReleaseRequest.Header.Set("Authorization", ghToken)
 	getReleaseResponse, err := http.DefaultClient.Do(getReleaseRequest)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 	defer getReleaseResponse.Body.Close()
 	if getReleaseResponse.StatusCode == 404 {
@@ -78,12 +78,13 @@ func main() {
 	}
 	buff, err := ioutil.ReadAll(getReleaseResponse.Body)
 	if err != nil {
-		panic(nil)
+		panic(err)
 	}
 	var release commons.Release
 	err = json.Unmarshal(buff, &releaseFileName)
 	if err != nil {
-		panic(nil)
+                println(string(buff))
+		panic(err)
 	}
 	for _, asset := range release.Assets {
 		if asset.Name == releaseFileName {
