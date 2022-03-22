@@ -88,9 +88,9 @@ func main() {
 	}
 	for _, asset := range release.Assets {
 		if asset.Name == releaseFileName {
-			print("EXISTS")
+			println("::set-output name=skip_build::true")
 			os.Exit(0)
 		}
 	}
-	print("BUILD")
+	print("::set-output name=skip_build::false")
 }
