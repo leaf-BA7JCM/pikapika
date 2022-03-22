@@ -109,11 +109,7 @@ jobs:
         if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
         uses: msys2/setup-msys2@v2
         with:
-          install: gcc make
-
-      - name: Install zip (Windows)
-        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
-        uses: montudor/action-zip@v1
+          install: gcc make zip
 
       - name: Install appimage (Linux)
         if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'linux'
