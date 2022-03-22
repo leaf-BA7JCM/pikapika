@@ -1,96 +1,123 @@
-package main
+name: Release
 
-import (
-	"ci/commons"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-)
+on:
+  workflow_dispatch:
 
-const owner = "niuhuan"
-const repo = "pikapika"
-const ua = "niuhuan pikapika ci"
+env:
+  go_version: '1.16'
+  flutter_channel: 'stable'
+  flutter_version: '2.10.3'
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-func main() {
-	// get ghToken
-	ghToken := os.Getenv("GH_TOKEN")
-	if ghToken == "" {
-		println("Env ${GH_TOKEN} is not set")
-		os.Exit(1)
-	}
-	// get version
-	var version commons.Version
-	codeFile, err := ioutil.ReadFile("version.code.txt")
-	if err != nil {
-		panic(err)
-	}
-	version.Code = strings.TrimSpace(string(codeFile))
-	infoFile, err := ioutil.ReadFile("version.info.txt")
-	if err != nil {
-		panic(err)
-	}
-	version.Info = strings.TrimSpace(string(infoFile))
-	// get target
-	target := os.Getenv("TARGET")
-	if ghToken == "" {
-		println("Env ${TARGET} is not set")
-		os.Exit(1)
-	}
-	//
-	var releaseFileName string
-	switch target {
-	case "macos":
-		releaseFileName = fmt.Sprintf("pikapika-v1.4.1-android-arm32.apk")
-	case "ios":
-		releaseFileName = fmt.Sprintf("pikapika-%v-ios-nosign.ipa", version.Code)
-	case "windows":
-		releaseFileName = fmt.Sprintf("pikapika-%v-windows-x86_64.zip", version.Code)
-	case "linux":
-		releaseFileName = fmt.Sprintf("pikapika-%v-linux-x86_64.AppImage", version.Code)
-	case "android-arm32":
-		releaseFileName = fmt.Sprintf("pikapika-%v-android-arm32.apk", version.Code)
-	case "android-arm64":
-		releaseFileName = fmt.Sprintf("pikapika-%v-android-arm64.apk", version.Code)
-	case "android-x86_64":
-		releaseFileName = fmt.Sprintf("pikapika-%v-android-x86_64.apk", version.Code)
-	}
-	// get version
-	getReleaseRequest, err := http.NewRequest(
-		"GET",
-		fmt.Sprintf("https://api.github.com/repos/%v/%v/releases/tags/%v", owner, repo, version.Code),
-		nil,
-	)
-	if err != nil {
-		panic(err)
-	}
-	getReleaseRequest.Header.Set("User-Agent", ua)
-	getReleaseRequest.Header.Set("Authorization", ghToken)
-	getReleaseResponse, err := http.DefaultClient.Do(getReleaseRequest)
-	if err != nil {
-		panic(err)
-	}
-	defer getReleaseResponse.Body.Close()
-	if getReleaseResponse.StatusCode == 404 {
-		panic("NOT FOUND RELEASE")
-	}
-	buff, err := ioutil.ReadAll(getReleaseResponse.Body)
-	if err != nil {
-		panic(err)
-	}
-	var release commons.Release
-	err = json.Unmarshal(buff, &release)
-	if err != nil {
-                println(string(buff))
-		panic(err)
-	}
-	for _, asset := range release.Assets {
-		if asset.Name == releaseFileName {
-			println("::set-output name=skip_build::true")
-			os.Exit(0)
-		}
-	}
-	print("::set-output name=skip_build::false")
-}
+jobs:
+
+  ci-pass:
+    name: CI is green
+    runs-on: ubuntu-latest
+    needs:
+      - check_release
+      - build_release_assets
+    steps:
+      - run: exit 0
+
+  check_release:
+    name: Check release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.inputs.repo }}
+          ref: 'master'
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+      - name: Check release
+        run: |
+          cd ci
+          go run ./cmd/check_release
+
+  build_release_assets:
+    name: Build release assets
+    needs:
+      - check_release
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - target: linux
+            host: ubuntu-latest
+          - target: windows
+            host: windows-latest
+          - target: macos
+            host: macos-latest
+          - target: ios
+            host: macos-latest
+          - target: android-arm32
+            host: ubuntu-latest
+          - target: android-arm64
+            host: ubuntu-latest
+          - target: android-x86_64
+            host: ubuntu-latest
+
+    runs-on: ${{ matrix.config.host }}
+
+    env:
+      TARGET: ${{ matrix.config.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go_version }}
+
+      - id: check_asset
+        name: Check asset
+        run: |
+          cd ci
+          go run ./cmd/check_asset
+
+      - name: Setup flutter
+        if: steps.check_asset.outputs.skip_build != 'true'
+        uses: subosito/flutter-action@v2.3.0
+        with:
+          channel: ${{ env.flutter_channel }}
+          flutter-version: ${{ env.flutter_version }}
+
+      - name: Setup java (Android)
+        if: steps.check_asset.outputs.skip_build != 'true' && ( matrix.config.target == 'android-arm32' || matrix.config.target == 'android-arm64' || matrix.config.target == 'android-x86_64' )
+        uses: actions/setup-java@v3
+        with:
+          java-version: 8
+          distribution: 'zulu'
+
+      - name: Setup android tools (Android)
+        if: steps.check_asset.outputs.skip_build != 'true' && ( matrix.config.target == 'android-arm32' || matrix.config.target == 'android-arm64' || matrix.config.target == 'android-x86_64' )
+        uses: maxim-lobanov/setup-android-tools@v1
+        with:
+          packages: |
+            platform-tools
+            platforms;android-32
+            build-tools;30.0.2
+            ndk;22.1.7171670
+
+      - name: Setup msys2 (Windows)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          install: gcc make
+
+      - name: Install zip (Windows)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
+        uses: montudor/action-zip@v1
+
+      - name: Install appimage (Linux)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'linux'
+        run: |
+          curl -JOL https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -o /bin/appimagetool
+          chmod a+x /bin/appimagetool
+
