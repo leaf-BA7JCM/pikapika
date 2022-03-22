@@ -116,5 +116,21 @@ jobs:
         run: |
           curl -JOL https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod a+x appimagetool-x86_64.AppImage
-          mv appimagetool-x86_64.AppImage /usr/bin/appimagetool
+          mkdir -p ${GITHUB_WORKSPACE}/bin
+          mv appimagetool-x86_64.AppImage ${GITHUB_WORKSPACE}/bin/appimagetool
+          echo ::add-path::${GITHUB_WORKSPACE}/bin
 
+      - name: Build (windows)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
+        run: |
+          hover build windows
+
+      - name: Build (macos)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'macos'
+        run: |
+          hover build darwin-dmg
+
+      - name: Build (linux)
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'linux'
+        run: |
+          hover build linux-appimage
