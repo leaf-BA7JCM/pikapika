@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   workflow_dispatch:
@@ -39,9 +39,9 @@ jobs:
           go run ./cmd/check_release
 
   build_release_assets:
+    name: Build release assets
     needs:
       - check_release
-    name: Build release assets
     strategy:
       matrix:
         config:
@@ -80,21 +80,22 @@ jobs:
           cd ci
           go run ./cmd/check_asset
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD'
+      - name: Setup flutter
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD'
         uses: subosito/flutter-action@v2.3.0
         with:
           channel: ${{ env.flutter_channel }}
           flutter-version: ${{ env.flutter_version }}
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
-        name: Setup java
+      - name: Setup java (Android)
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
         uses: actions/setup-java@v3
         with:
           java-version: 8
           distribution: 'zulu'
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
-        name: Setup android tools
+      - name: Setup android tools (Android)
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
         uses: maxim-lobanov/setup-android-tools@v1
         with:
           packages: |
@@ -103,17 +104,17 @@ jobs:
             build-tools;30.0.2
             ndk;22.1.7171670
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
-        name: Setup msys2
+      - name: Setup msys2 (Windows)
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
         uses: msys2/setup-msys2@v2
         with:
           install: gcc make
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
-        name: Install zip
+      - name: Install zip (Windows)
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
         uses: montudor/action-zip@v1
 
-      - if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'linux'
-        name: Install appimage
+      - name: Install appimage (Linux)
+        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'linux'
         uses: AppImageCrafters/build-appimage@master
 
