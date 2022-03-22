@@ -91,6 +91,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 8
+          distribution: 'zulu'
 
       - if: ${{ steps.check_asset.outputs.* }} == "BUILD" && ( ${{ matrix.config.target }} == "android-arm32" | ${{ matrix.config.target }} == "android-arm64" | ${{ matrix.config.target }} == "android-x86_64" )
         name: Setup android tools
