@@ -130,7 +130,6 @@ jobs:
             platforms;android-32
             build-tools;30.0.2
             ndk;22.1.7171670
-          cache: true
 
       - if: ${{steps.check_asset.outputs.*}} == "BUILD" && ( ${{ env.TARGET }} == "windows" )
         name: Setup msys2
