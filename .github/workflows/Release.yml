@@ -43,6 +43,7 @@ jobs:
     needs:
       - check_release
     strategy:
+      fail-fast: false
       matrix:
         config:
           - target: linux
@@ -81,21 +82,21 @@ jobs:
           go run ./cmd/check_asset
 
       - name: Setup flutter
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD'
+        if: steps.check_asset.outputs.skip_build != 'true'
         uses: subosito/flutter-action@v2.3.0
         with:
           channel: ${{ env.flutter_channel }}
           flutter-version: ${{ env.flutter_version }}
 
       - name: Setup java (Android)
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
+        if: steps.check_asset.outputs.skip_build != 'true' && ( matrix.config.target == 'android-arm32' || matrix.config.target == 'android-arm64' || matrix.config.target == 'android-x86_64' )
         uses: actions/setup-java@v3
         with:
           java-version: 8
           distribution: 'zulu'
 
       - name: Setup android tools (Android)
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ( ${{ matrix.config.target }} == 'android-arm32' || ${{ matrix.config.target }} == 'android-arm64' || ${{ matrix.config.target }} == 'android-x86_64' )
+        if: steps.check_asset.outputs.skip_build != 'true' && ( matrix.config.target == 'android-arm32' || matrix.config.target == 'android-arm64' || matrix.config.target == 'android-x86_64' )
         uses: maxim-lobanov/setup-android-tools@v1
         with:
           packages: |
@@ -105,16 +106,16 @@ jobs:
             ndk;22.1.7171670
 
       - name: Setup msys2 (Windows)
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
         uses: msys2/setup-msys2@v2
         with:
           install: gcc make
 
       - name: Install zip (Windows)
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'windows'
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'windows'
         uses: montudor/action-zip@v1
 
       - name: Install appimage (Linux)
-        if: ${{ steps.check_asset.outputs.* }} == 'BUILD' && ${{ matrix.config.target }} == 'linux'
+        if: steps.check_asset.outputs.skip_build != 'true' && matrix.config.target == 'linux'
         uses: AppImageCrafters/build-appimage@master
 
